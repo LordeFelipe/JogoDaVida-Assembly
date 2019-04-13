@@ -44,20 +44,26 @@ main:
 	lw	s2,color	#s2 = cor 
 	lw	s1,not_color	#s1 = zero
 	
-	li	a7,5		#Leitura da linha
-	ecall			
-	mv	t0,a0		
-	li	a7,5		#Leitura da coluna
-	ecall			
-	mv	t1,a0		
+#	li	a7,5		#Leitura da linha
+#	ecall			
+#	mv	t0,a0		
+#	li	a7,5		#Leitura da coluna
+#	ecall			
+#	mv	t1,a0		
 	
-	mv 	a2,s4		#a2 = copia do endereço da matriz de bytes
-	mv	a0,t0		#a0 = copia da linha
-	mv	a1,t1		#a1 = copia da coluna	
-	call	write	
+#	mv 	a2,s4		#a2 = copia do endereço da matriz de bytes
+#	mv	a0,t0		#a0 = copia da linha
+#	mv	a1,t1		#a1 = copia da coluna	
+#	call	write	
 	
-	mv	a0,s4		#a0 = copia do endereço da matriz de bytes
-	call 	plot_m
+#	mv	a0,s4		#a0 = copia do endereço da matriz de bytes
+#	call 	plot_m
+	
+	li	a0,17
+	li	a1,1
+	mv	a2,s4
+	call	readm
+	
 	li	a7,10
 	ecall
 	
@@ -88,16 +94,29 @@ write_end:
 #a2 = copia do endereço da matriz de bytes
 #a3 = retorno do pixel
 readm:
+	li	t1,0
+	li	t2,17
+	bge	a0,t2,readm_error
+	bge	a1,t2,readm_error
+	ble	a0,t1,readm_error
+	ble	a1,t1,readm_error
+	j	readm1
+
+readm_error:
+	li	a3,-1
+	ret
+
+readm1:
 	addi	a1,a1,-1	
 	beqz	a1,readm2
 	addi	a2,a2,1		#Avança ponteiro da matriz
-	j 	readm
+	j 	readm1
 
 readm2:				#Pecorre linha
 	addi	a0,a0,-1
 	beqz	a0,readm_end
 	li	a1,17
-	j	readm
+	j	readm1
 	
 readm_end:
 	lb	a3,0(a2)	#Guarda o valor do pixel
@@ -129,5 +148,37 @@ plot_m2:
 plot_end:
 	ret
 	
+#---------------Cria a próxima geração-----------------#	
+
+next_gem:
+	li	a5,16		#a5 = contador de linhas				
+	li	a6,16		#a6 = contador de colunas
+	mv	a4,s4		#copia da matriz de bytes1
+	mv	a3,s5		#copia da matriz de bytes2
+	
+next_gem2:				#Percorre coluna
+	addi	a6,a6,-1	
+	beqz	a6,next_gem3
+	
+	
+	
+	
+	
+	addi	a4,a4,1		#Avança ponteiro da matriz de bytes1
+	addi	a3,a3,1		#Avança ponteiro da matriz de bytes2
+	j 	next_gem2
+
+next_gem3:			#Pecorre linha
+	addi	a5,a5,-1
+	beqz	a5,next_gem_end
+	li	a6,17
+	j	next_gem2
+	
+next_gem_end:
+	li	t1,1		#Fazer um xor 
+	sb	t1,0(a2)
+	ret
+
+
 
 	
