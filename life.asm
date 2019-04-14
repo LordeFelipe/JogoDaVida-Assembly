@@ -4,17 +4,17 @@ matbyte1: .byte 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-			0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0
-			0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0
-			0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0
-			0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 matbyte2: .byte 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -43,24 +43,9 @@ main:
 	lw	s6,display	#a3 = endereço do display
 	lw	s2,color	#s2 = cor 
 	lw	s1,not_color	#s1 = zero
-	
-#	li	a7,5		#Leitura da linha
-#	ecall			
-#	mv	t0,a0		
-#	li	a7,5		#Leitura da coluna
-#	ecall			
-#	mv	t1,a0		
-	
-#	mv 	a2,s4		#a2 = copia do endereço da matriz de bytes
-#	mv	a0,t0		#a0 = copia da linha
-#	mv	a1,t1		#a1 = copia da coluna	
-#	call	write	
-
-#	li	a0,16
-#	li	a1,16
-#	mv	a2,s4
-#	call	readm
-	
+##	
+	call 	input
+##	
 	mv	a0,s4		#a0 = copia do endereço da matriz de bytes
 	call 	plot_m
 
@@ -71,8 +56,8 @@ loop:
 	call	update_m
 	mv	a0,s4
 	call 	plot_m
-	li	a7,32
-	li	a0,500
+	li	a7,32		#sleep
+	li	a0,10
 	ecall
 	j	loop
 	
@@ -104,11 +89,11 @@ write_end:
 #a0 = copia da linha
 #a1 = copia da coluna
 #a2 = copia do endereço da matriz de bytes
-#a3 = retorno do pixel
+#a3 = retorno do pixel(0 - valor no pixel é zero ou se está fora do range, 1 - valor do pixel é um
 readm:
 	li	t1,0
 	li	t2,17
-	bge	a0,t2,readm_error
+	bge	a0,t2,readm_error	#Verificando se as coordenadas estão no range
 	bge	a1,t2,readm_error
 	ble	a0,t1,readm_error
 	ble	a1,t1,readm_error
@@ -141,7 +126,7 @@ plot_m:
 	li	a5,1		#a5 = contador de linhas				
 	li	a6,1		#a6 = contador de colunas
 	li	s9,17
-	mv	a4,s6		#copia do display
+	mv	a4,s6		#a4 = copia do display
 plot_m1:
 	beq	a6,s9,plot_m2
 	addi	a4,a4,4		#anda o display
@@ -170,7 +155,7 @@ next_gen:
 	mv	s8,s5		#s8 = copia da matriz de bytes2
 	
 next_gen2:				#Percorre coluna
-	beq	a6,s9,next_gen3	#a6==17
+	beq	a6,s9,next_gen3		#a6==17
 
 	addi	sp,sp,-4
 	sw	ra, 0(sp)		
@@ -193,17 +178,18 @@ next_gen3:			#Pecorre linha
 	
 next_gen_end:
 	ret
-#---------------Determina e a7 quem vive ou morre-----------------#	
+#---------------Determina em a7 quem vive ou morre-----------------#	
 #a5 = contador de linhas				
 #a6 = contador de colunas
 #a4 = copia da matriz de bytes1
 #a3 = copia da matriz de bytes2
 live_or_die:
 	mv	a2,s4
-	li	a7,0	#a7 = numero vivos
+	li	a7,0		#a7 = numero vivos
 	
-	addi	sp,sp,-4
+	addi	sp,sp,-4	#colocando endereço de retorno na pilha
 	sw	ra, 0(sp)		
+	
 vizinho1:
 	mv	a2,s4
 	addi	a0,a5,-1
@@ -263,17 +249,34 @@ vizinho8:
 	addi	a7,a7,1
 	
 vizinho_end:
-	lw 	ra,0(sp)	
-	addi	sp,sp,4
+
 	li	t0,2
 	li	t1,3
+	lw 	ra,0(sp)	#Recuperando ra da pilha	
+	addi	sp,sp,4
+	beq	t1,a7,live	#Checa se a7 tem 3 vizinhos em sua volta
+	
+	mv	a0,a5
+	mv	a1,a6
+	mv	a2,s4
+	
+	addi	sp,sp,-4	#colocando endereço de retorno na pilha
+	sw	ra, 0(sp)		
+	call 	readm
+	lw 	ra,0(sp)	#Recuperando ra da pilha	
+	addi	sp,sp,4
+	
+	beqz	a3,die		#verifica se a3 é uma celula
+	
 	beq	t0,a7,live
-	beq	t1,a7,live
-	li	a7,0
+die:	
+	li	a7,0		#a7 se torna 0 se a célula morrer na prox. geração
 	ret
+
 live:
-	li	a7,1
+	li	a7,1		#a7 se torna 1 se a célula viver na prox. geração
 	ret
+
 
 #---------------Copia a matriz 2 para a 1-----------------#	
 #a0 = copia do endereço da matriz de bytes1
@@ -286,8 +289,8 @@ update_m1:
 	beq	a6,s9,update_m2
 	lb	t0,0(a1)
 	sb	t0,0(a0)	
-	addi	a0,a0,1		#anda a matriz de bytes
-	addi	a1,a1,1
+	addi	a0,a0,1		#anda a matriz de bytes1
+	addi	a1,a1,1		#anda a matriz de bytes2
 	addi	a6,a6,1 
 	j	update_m1	
 update_m2:
@@ -297,4 +300,43 @@ update_m2:
 	j	update_m1
 
 update_end:
+	ret
+
+#---------------Pega os valores de entrada-----------------#	
+input:
+	li	a7,5		#leitura do numero de entradas
+	ecall
+	mv	t3,a0
+	
+input_loop:
+	beqz	t3,input_end
+	
+	li	a7,5		#Leitura da linha
+	ecall			
+	mv	t0,a0		
+	li	a7,5		#Leitura da coluna
+	ecall			
+	mv	t1,a0		
+	
+	mv 	a2,s4		#a2 = copia do endereço da matriz de bytes
+	mv	a0,t0		#a0 = copia da linha
+	mv	a1,t1		#a1 = copia da coluna	
+
+	addi	sp,sp,-4	#comandos da pilha
+	sw	ra, 0(sp)		
+	call	write	
+	lw 	ra,0(sp)
+	addi	sp,sp,4
+	
+	mv	a0,s4		#Atualiza o display
+	addi	sp,sp,-4	#comandos da pilha
+	sw	ra, 0(sp)	
+	call 	plot_m
+	lw 	ra,0(sp)
+	addi	sp,sp,4
+	
+	addi	t3,t3,-1
+	j	input_loop
+	
+input_end:
 	ret
