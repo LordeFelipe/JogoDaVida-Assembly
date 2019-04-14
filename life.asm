@@ -1,13 +1,13 @@
 .data
-matbyte1: .byte 	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-			1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+matbyte1: .byte 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+			0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0
+			0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0
+			0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0
+			0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -55,17 +55,27 @@ main:
 #	mv	a0,t0		#a0 = copia da linha
 #	mv	a1,t1		#a1 = copia da coluna	
 #	call	write	
+
+#	li	a0,16
+#	li	a1,16
+#	mv	a2,s4
+#	call	readm
 	
 	mv	a0,s4		#a0 = copia do endereço da matriz de bytes
 	call 	plot_m
-	
-#	li	a0,1
-#	li	a1,1
-#	mv	a2,s4
-#	call	readm
 
+loop:	
 	call	next_gen
-			
+	mv	a0,s4
+	mv	a1,s5
+	call	update_m
+	mv	a0,s4
+	call 	plot_m
+	li	a7,32
+	li	a0,500
+	ecall
+	j	loop
+	
 	li	a7,10
 	ecall
 	
@@ -151,7 +161,7 @@ plot_m2:
 plot_end:
 	ret
 	
-#---------------Cria a próxima geração-----------------#	
+#---------------Cria a próxima geração na matriz2-----------------#	
 #a7 = contador de vizinhos
 next_gen:
 	li	a5,1		#a5 = contador de linhas				
@@ -160,24 +170,25 @@ next_gen:
 	mv	s8,s5		#s8 = copia da matriz de bytes2
 	
 next_gen2:				#Percorre coluna
-	addi	a6,a6,-1	
-	beqz	a6,next_gen3
+	beq	a6,s9,next_gen3	#a6==17
 
 	addi	sp,sp,-4
 	sw	ra, 0(sp)		
 	call 	live_or_die
 	lw 	ra,0(sp)
 	addi	sp,sp,4
-	lb	a7,0(s8)
+	
+	sb	a7,0(s8)	#a7 retorna se morreu ou não
 	
 	addi	a4,a4,1		#Avança ponteiro da matriz de bytes1
 	addi	s8,s8,1		#Avança ponteiro da matriz de bytes2
+	addi	a6,a6,1
 	j 	next_gen2
 
 next_gen3:			#Pecorre linha
-	addi	a5,a5,-1
-	beqz	a5,next_gen_end
-	li	a1,17
+	beq	a5,s9,next_gen_end	#a5==17
+	addi	a5,a5,1
+	li	a6,1
 	j	next_gen2
 	
 next_gen_end:
@@ -264,4 +275,26 @@ live:
 	li	a7,1
 	ret
 
-	
+#---------------Copia a matriz 2 para a 1-----------------#	
+#a0 = copia do endereço da matriz de bytes1
+#a1 = copia do endereço da matriz de bytes2
+update_m:
+	li	a5,1		#a5 = contador de linhas				
+	li	a6,1		#a6 = contador de colunas
+	li	s9,17
+update_m1:
+	beq	a6,s9,update_m2
+	lb	t0,0(a1)
+	sb	t0,0(a0)	
+	addi	a0,a0,1		#anda a matriz de bytes
+	addi	a1,a1,1
+	addi	a6,a6,1 
+	j	update_m1	
+update_m2:
+	beq	a5,s9,update_end
+	li	a6,1
+	addi	a5,a5,1
+	j	update_m1
+
+update_end:
+	ret
