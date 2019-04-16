@@ -2,7 +2,7 @@
 matbyte1: .byte 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+			0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 			0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -35,6 +35,9 @@ matbyte2: .byte 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 color: .word 0xFF0000
 not_color: .word 0x0
 display: .word 0x3000
+texto1:	.string "Insira o número de pixels que serão inseridos:"
+texto2:	.string "Insira a linha que o pixel será inserido:"
+texto3:	.string "Insira a coluna que o pixel será inserido:"
 .text
 
 main:
@@ -43,12 +46,9 @@ main:
 	lw	s6,display	#a3 = endereço do display
 	lw	s2,color	#s2 = cor 
 	lw	s1,not_color	#s1 = zero
-##	
+#	
 	call 	input
-##	
-	mv	a0,s4		#a0 = copia do endereço da matriz de bytes
-	call 	plot_m
-
+	
 loop:	
 	call	next_gen
 	mv	a0,s4
@@ -57,17 +57,68 @@ loop:
 	mv	a0,s4
 	call 	plot_m
 	li	a7,32		#sleep
-	li	a0,10
+	li	a0,300
 	ecall
 	j	loop
 	
 	li	a7,10
 	ecall
+
+#---------------INPUT-----------------#	
+#INPUT: 	Nada
+#OUTPUT: 	Matriz de bytes1 atualizada
+input:
+	li	a7,4		#Print String
+	la	a0,texto1
+	ecall
 	
-#---------------Marca com zeros e uns a matriz---------------#
-#a0 = copia da linha
-#a1 = copia da coluna
-#a2 = copia do endereço da matriz de bytes
+	li	a7,5		#leitura do numero de entradas
+	ecall
+	mv	t3,a0
+	
+input_loop:
+	beqz	t3,input_end
+	
+	li	a7,4		#Print string
+	la	a0,texto2
+	ecall
+	li	a7,5		#Leitura da linha
+	ecall			
+	mv	t0,a0
+	
+	li	a7,4		#Print String
+	la	a0,texto3
+	ecall		
+	li	a7,5		#Leitura da coluna
+	ecall			
+	mv	t1,a0		
+	
+	mv 	a2,s4		#a2 = copia do endereço da matriz de bytes
+	mv	a0,t0		#a0 = copia da linha
+	mv	a1,t1		#a1 = copia da coluna	
+	addi	sp,sp,-4	#comandos da pilha
+	sw	ra, 0(sp)		
+	call	write		#Função para escrever o pixel na matriz
+	
+	mv	a0,s4		
+	call 	plot_m		#Atualiza o display
+	
+	lw 	ra,0(sp)
+	addi	sp,sp,4		#Recupera ra da pilha
+	
+	addi	t3,t3,-1
+	j	input_loop
+	
+input_end:
+	ret
+
+			
+#---------------WRITE---------------#
+#INPUT:		a0 = copia da linha
+#		a1 = copia da coluna
+#		a2 = copia do endereço da matriz de bytes
+#OUTPUT: 	Nada
+
 write:				#Percorre coluna
 	addi	a1,a1,-1	
 	beqz	a1,write2
@@ -81,15 +132,16 @@ write2:				#Pecorre linha
 	j	write
 	
 write_end:
-	li	t1,1		#Fazer um xor 
+	li	t4,1
+	xor	t1,t1,t4		#Invertendo o valor de um bit
 	sb	t1,0(a2)
 	ret
 
-#---------------Le o valor de um pixel---------------#
-#a0 = copia da linha
-#a1 = copia da coluna
-#a2 = copia do endereço da matriz de bytes
-#a3 = retorno do pixel(0 - valor no pixel é zero ou se está fora do range, 1 - valor do pixel é um
+#---------------READM---------------#
+#INPUT:		a0 = copia da linha
+#		a1 = copia da coluna
+#		a2 = copia do endereço da matriz de bytes
+#OUTPUT:	a3 = retorno do pixel(0 - valor no pixel é zero ou se está fora do range, 1 - valor do pixel é um
 readm:
 	li	t1,0
 	li	t2,17
@@ -103,7 +155,7 @@ readm_error:
 	li	a3,0
 	ret
 
-readm1:
+readm1:				#Percorre coluna
 	addi	a1,a1,-1	
 	beqz	a1,readm2
 	addi	a2,a2,1		#Avança ponteiro da matriz
@@ -120,8 +172,9 @@ readm_end:
 	ret
 	
 
-#---------------Plota a matriz no bitmap-----------------#	
-#a0 = copia do endereço da matriz de bytes
+#---------------PLOT_M-----------------#	
+#INPUT:		a0 = copia do endereço da matriz de bytes
+#OUTPUT:	Nada
 plot_m:
 	li	a5,1		#a5 = contador de linhas				
 	li	a6,1		#a6 = contador de colunas
@@ -147,7 +200,8 @@ plot_end:
 	ret
 	
 #---------------Cria a próxima geração na matriz2-----------------#	
-#a7 = contador de vizinhos
+#INPUT:		Nada
+#OUTPUT:	Nada
 next_gen:
 	li	a5,1		#a5 = contador de linhas				
 	li	a6,1		#a6 = contador de colunas
@@ -159,7 +213,7 @@ next_gen2:				#Percorre coluna
 
 	addi	sp,sp,-4
 	sw	ra, 0(sp)		
-	call 	live_or_die
+	call 	live_or_die	#Determina se a célula vai viver ou não
 	lw 	ra,0(sp)
 	addi	sp,sp,4
 	
@@ -178,11 +232,12 @@ next_gen3:			#Pecorre linha
 	
 next_gen_end:
 	ret
-#---------------Determina em a7 quem vive ou morre-----------------#	
-#a5 = contador de linhas				
-#a6 = contador de colunas
-#a4 = copia da matriz de bytes1
-#a3 = copia da matriz de bytes2
+#---------------LIVE_OR_DIE-----------------#	
+#INPUT:		a5 = contador de linhas				
+#		a6 = contador de colunas
+#		a4 = copia da matriz de bytes1
+#		a3 = copia da matriz de bytes2
+#OUTPUT:	a7 = determina quem vive ou morre (1 = vive, 0 = morre)
 live_or_die:
 	mv	a2,s4
 	li	a7,0		#a7 = numero vivos
@@ -279,8 +334,9 @@ live:
 
 
 #---------------Copia a matriz 2 para a 1-----------------#	
-#a0 = copia do endereço da matriz de bytes1
-#a1 = copia do endereço da matriz de bytes2
+#INPUT:		a0 = copia do endereço da matriz de bytes1
+#		a1 = copia do endereço da matriz de bytes2
+#OUTPUT:	Nada
 update_m:
 	li	a5,1		#a5 = contador de linhas				
 	li	a6,1		#a6 = contador de colunas
@@ -300,43 +356,4 @@ update_m2:
 	j	update_m1
 
 update_end:
-	ret
-
-#---------------Pega os valores de entrada-----------------#	
-input:
-	li	a7,5		#leitura do numero de entradas
-	ecall
-	mv	t3,a0
-	
-input_loop:
-	beqz	t3,input_end
-	
-	li	a7,5		#Leitura da linha
-	ecall			
-	mv	t0,a0		
-	li	a7,5		#Leitura da coluna
-	ecall			
-	mv	t1,a0		
-	
-	mv 	a2,s4		#a2 = copia do endereço da matriz de bytes
-	mv	a0,t0		#a0 = copia da linha
-	mv	a1,t1		#a1 = copia da coluna	
-
-	addi	sp,sp,-4	#comandos da pilha
-	sw	ra, 0(sp)		
-	call	write	
-	lw 	ra,0(sp)
-	addi	sp,sp,4
-	
-	mv	a0,s4		#Atualiza o display
-	addi	sp,sp,-4	#comandos da pilha
-	sw	ra, 0(sp)	
-	call 	plot_m
-	lw 	ra,0(sp)
-	addi	sp,sp,4
-	
-	addi	t3,t3,-1
-	j	input_loop
-	
-input_end:
 	ret
