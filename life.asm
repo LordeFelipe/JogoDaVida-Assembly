@@ -201,7 +201,7 @@ plot_m2:
 plot_end:
 	ret
 	
-#---------------Cria a próxima geração na matriz2-----------------#	
+#---------------NEXT_GEN-----------------#	
 #INPUT:		Nada
 #OUTPUT:	Nada
 next_gen:
@@ -238,7 +238,6 @@ next_gen_end:
 #INPUT:		a5 = contador de linhas				
 #		a6 = contador de colunas
 #		a4 = copia da matriz de bytes1
-#		a3 = copia da matriz de bytes2
 #OUTPUT:	a7 = determina quem vive ou morre (1 = vive, 0 = morre)
 live_or_die:
 	mv	a2,s4
@@ -335,7 +334,7 @@ live:
 	ret
 
 
-#---------------Copia a matriz 2 para a 1-----------------#	
+#---------------UPDATE_M-----------------#	
 #INPUT:		a0 = copia do endereço da matriz de bytes1
 #		a1 = copia do endereço da matriz de bytes2
 #OUTPUT:	Nada
